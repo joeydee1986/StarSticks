@@ -81,10 +81,19 @@ class MainWindow(QMainWindow):
         self.joystick_list = QTextEdit()
         self.joystick_list.setReadOnly(True)
         self.joystick_list.setMaximumHeight(150)
+
+        # Button row
+        button_row = QHBoxLayout()
         self.detect_btn = QPushButton("Detect Joysticks")
         self.detect_btn.clicked.connect(self.detect_joysticks)
+        self.swap_btn = QPushButton("Swap L/R Joysticks")
+        self.swap_btn.clicked.connect(self.swap_joysticks)
+        self.swap_btn.setToolTip("Swap the left and right joystick mapping if bindings appear on wrong stick")
+        button_row.addWidget(self.detect_btn)
+        button_row.addWidget(self.swap_btn)
+
         joystick_layout.addWidget(self.joystick_list)
-        joystick_layout.addWidget(self.detect_btn)
+        joystick_layout.addLayout(button_row)
         joystick_group.setLayout(joystick_layout)
         main_layout.addWidget(joystick_group)
 
@@ -178,6 +187,15 @@ class MainWindow(QMainWindow):
         """Handle mode selection change"""
         self.current_mode = self.mode_combo.itemData(index)
         self.apply_mode_filter()
+
+    def swap_joysticks(self):
+        """Swap the left and right joystick mapping"""
+        self.viz_widget.swap_joystick_mapping()
+        self.statusBar().showMessage("Joystick mapping swapped")
+
+        # Reload bindings with new mapping
+        if self.current_bindings:
+            self.apply_mode_filter()
 
     def apply_mode_filter(self):
         """Filter and display bindings based on selected mode"""

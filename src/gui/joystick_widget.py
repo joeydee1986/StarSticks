@@ -374,6 +374,7 @@ class DualJoystickView(QWidget):
         self.left_stick = None
         self.right_stick = None
         self.stick_visualizations = {}  # Map pygame ID to visualization widget
+        self.mapping_swapped = False  # Track if user has swapped the mapping
         self.init_ui()
 
     def init_ui(self):
@@ -437,6 +438,11 @@ class DualJoystickView(QWidget):
             print(f"Pygame ID {joy_id} = {viz.joystick_name}")
         print("="*50 + "\n")
 
+    def swap_joystick_mapping(self):
+        """Toggle the joystick mapping (swap left/right)"""
+        self.mapping_swapped = not self.mapping_swapped
+        print(f"\n🔄 Joystick mapping {'SWAPPED' if self.mapping_swapped else 'NORMAL'}\n")
+
     def update_bindings(self, bindings: List[Dict]):
         """
         Update all button bindings from parsed SC bindings
@@ -455,6 +461,11 @@ class DualJoystickView(QWidget):
         available_pygame_ids = sorted(self.stick_visualizations.keys())
 
         print(f"Available pygame IDs: {available_pygame_ids}")
+
+        # Apply swap if user has toggled it
+        if self.mapping_swapped and len(available_pygame_ids) >= 2:
+            available_pygame_ids = list(reversed(available_pygame_ids))
+            print("🔄 Mapping is SWAPPED")
 
         # Create mapping: SC js1 → first available ID, js2 → second available ID, etc.
         sc_to_pygame_map = {}
