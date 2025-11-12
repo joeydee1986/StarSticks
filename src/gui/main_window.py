@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from src.core.joystick_detector import JoystickDetector
 from src.core.binding_parser import BindingParser
+from src.gui.joystick_widget import DualJoystickView
 
 
 class MainWindow(QMainWindow):
@@ -17,6 +18,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.joystick_detector = JoystickDetector()
         self.binding_parser = BindingParser()
+        self.detected_joysticks = []  # Store detected joysticks
         self.init_ui()
 
     def init_ui(self):
@@ -65,13 +67,11 @@ class MainWindow(QMainWindow):
         joystick_group.setLayout(joystick_layout)
         main_layout.addWidget(joystick_group)
 
-        # Visualization Area (placeholder for now)
+        # Visualization Area
         viz_group = QGroupBox("Joystick Visualization")
         viz_layout = QVBoxLayout()
-        self.viz_area = QLabel("Joystick visualization will appear here")
-        self.viz_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.viz_area.setStyleSheet("background-color: #2a2a2a; color: #ffffff; min-height: 300px;")
-        viz_layout.addWidget(self.viz_area)
+        self.viz_widget = DualJoystickView()
+        viz_layout.addWidget(self.viz_widget)
         viz_group.setLayout(viz_layout)
         main_layout.addWidget(viz_group)
 
@@ -105,6 +105,9 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Detecting joysticks...")
         joysticks = self.joystick_detector.detect()
 
+        # Store detected joysticks
+        self.detected_joysticks = joysticks
+
         if joysticks:
             output = f"Found {len(joysticks)} joystick(s):\n\n"
             for idx, joy in enumerate(joysticks):
@@ -114,9 +117,15 @@ class MainWindow(QMainWindow):
                 output += f"    Hats: {joy['hats']}\n\n"
             self.joystick_list.setText(output)
             self.statusBar().showMessage(f"Detected {len(joysticks)} joystick(s)")
+
+            # Update visualization
+            self.viz_widget.set_joysticks(joysticks)
         else:
             self.joystick_list.setText("No joysticks detected.\n\nPlease ensure your joysticks are connected.")
             self.statusBar().showMessage("No joysticks detected")
+
+            # Clear visualization
+            self.viz_widget.set_joysticks([])
 
     def load_bindings(self):
         """Load Star Citizen bindings from the selected instance"""
@@ -126,6 +135,14 @@ class MainWindow(QMainWindow):
         bindings = self.binding_parser.load_bindings(instance)
 
         if bindings:
-            self.statusBar().showMessage(f"Loaded {len(bindings)} binding(s) from {instance}")
+            joystick_bindings = bindings.get('joystick_bindings', [])
+            num_bindings = len(joystick_bindings)
+
+            if num_bindings > 0:
+                # Update visualization with bindings
+                self.viz_widget.update_bindings(joystick_bindings)
+                self.statusBar().showMessage(f"Loaded {num_bindings} joystick binding(s) from {instance}")
+            else:
+                self.statusBar().showMessage(f"No joystick bindings found in {instance} profile")
         else:
-            self.statusBar().showMessage(f"No bindings found for {instance}")
+            self.statusBar().showMessage(f"No binding files found for {instance}")
