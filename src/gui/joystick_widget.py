@@ -432,7 +432,10 @@ class DualJoystickView(QWidget):
 
             self.layout.addWidget(viz)
 
-        print(f"Mapped joysticks: {list(self.stick_visualizations.keys())}")
+        print(f"\n=== JOYSTICK DETECTION ===")
+        for joy_id, viz in self.stick_visualizations.items():
+            print(f"Pygame ID {joy_id} = {viz.joystick_name}")
+        print("="*50 + "\n")
 
     def update_bindings(self, bindings: List[Dict]):
         """
@@ -444,6 +447,11 @@ class DualJoystickView(QWidget):
         # Clear all existing bindings first
         for viz in self.stick_visualizations.values():
             viz.clear_all_bindings()
+
+        print(f"\n=== LOADING {len(bindings)} BINDINGS ===")
+
+        # Track bindings per device for summary
+        bindings_per_device = {}
 
         # Apply new bindings
         for binding in bindings:
@@ -468,13 +476,18 @@ class DualJoystickView(QWidget):
             # Get the visualization for this pygame ID
             viz = self.stick_visualizations.get(pygame_id)
             if not viz:
-                print(f"Warning: SC js{sc_js_number} (pygame ID {pygame_id}) not found in visualizations")
+                print(f"⚠ Warning: SC js{sc_js_number} (pygame ID {pygame_id}) not found in visualizations")
                 continue
+
+            # Track this binding
+            if sc_js_number not in bindings_per_device:
+                bindings_per_device[sc_js_number] = 0
+            bindings_per_device[sc_js_number] += 1
 
             # Handle button bindings
             if button_num is not None:
                 viz.set_button_binding(button_num, action)
-                print(f"Mapped: SC js{sc_js_number} button{button_num} → pygame ID {pygame_id} ({viz.joystick_name}) = {action[:30]}")
+                print(f"  SC js{sc_js_number} button{button_num} → Pygame ID {pygame_id} ({viz.joystick_name[:30]}) = {action[:30]}")
 
             # Handle axis bindings
             elif axis_name is not None:
@@ -484,7 +497,16 @@ class DualJoystickView(QWidget):
 
                 if axis_index is not None:
                     viz.set_axis_binding(axis_index, action)
-                    print(f"Mapped: SC js{sc_js_number} {axis_name} → pygame ID {pygame_id} ({viz.joystick_name}) = {action[:30]}")
+                    print(f"  SC js{sc_js_number} {axis_name} → Pygame ID {pygame_id} ({viz.joystick_name[:30]}) = {action[:30]}")
+
+        # Print summary
+        print(f"\n=== BINDING SUMMARY ===")
+        for sc_js, count in sorted(bindings_per_device.items()):
+            pygame_id = sc_js - 1
+            viz = self.stick_visualizations.get(pygame_id)
+            viz_name = viz.joystick_name if viz else "Unknown"
+            print(f"  SC js{sc_js} → Pygame ID {pygame_id} ({viz_name}): {count} bindings")
+        print("="*50 + "\n")
 
     def parse_input_string(self, input_str: str) -> Dict:
         """
