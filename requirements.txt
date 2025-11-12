@@ -1,0 +1,10 @@
+# GUI Framework
+PyQt6>=6.6.0
+PyQt6-Qt6>=6.6.0
+
+# Joystick/Controller Detection
+pygame>=2.5.2
+inputs>=0.5
+
+# Additional utilities
+pywin32>=306  # For Windows-specific operations
