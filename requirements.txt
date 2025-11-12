@@ -6,5 +6,8 @@ PyQt6-Qt6>=6.6.0
 pygame>=2.5.2
 inputs>=0.5
 
+# Build Tools
+pyinstaller>=6.0.0
+
 # Additional utilities
 pywin32>=306  # For Windows-specific operations
