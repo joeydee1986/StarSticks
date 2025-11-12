@@ -212,7 +212,13 @@ class JoystickVisualization(QWidget):
                 value_label.setStyleSheet("color: #cccccc; font-family: monospace;")
                 axis_h_layout.addWidget(value_label)
 
-                self.axis_widgets[i] = {'bar': axis_bar, 'label': value_label}
+                # Binding label
+                binding_label = QLabel("")
+                binding_label.setStyleSheet("color: #4CAF50; font-style: italic;")
+                binding_label.setMinimumWidth(150)
+                axis_h_layout.addWidget(binding_label)
+
+                self.axis_widgets[i] = {'bar': axis_bar, 'label': value_label, 'binding': binding_label}
                 axes_layout.addWidget(axis_widget)
 
             layout.addWidget(axes_container)
@@ -230,10 +236,26 @@ class JoystickVisualization(QWidget):
             display_action = self.format_action_name(action)
             self.button_widgets[button_number].set_binding(display_action)
 
+    def set_axis_binding(self, axis_number: int, action: str):
+        """
+        Set the binding for a specific axis
+
+        Args:
+            axis_number: The axis number (0-based)
+            action: The action name from Star Citizen
+        """
+        if axis_number in self.axis_widgets:
+            # Clean up action name for display
+            display_action = self.format_action_name(action)
+            self.axis_widgets[axis_number]['binding'].setText(display_action)
+            self.axis_widgets[axis_number]['binding'].setStyleSheet("color: #4CAF50; font-style: italic; font-weight: bold;")
+
     def clear_all_bindings(self):
-        """Clear all button bindings"""
+        """Clear all button and axis bindings"""
         for btn in self.button_widgets.values():
             btn.clear_binding()
+        for axis in self.axis_widgets.values():
+            axis['binding'].setText("")
 
     def format_action_name(self, action: str) -> str:
         """
@@ -401,31 +423,43 @@ class DualJoystickView(QWidget):
             input_str = binding.get('input', '')
             action = binding.get('action', '')
 
-            # Parse the input string to get device and button
+            # Parse the input string to get device and button/axis
             parsed = self.parse_input_string(input_str)
             device_id = parsed.get('device')
             button_num = parsed.get('button')
+            axis_name = parsed.get('axis')
 
+            # Handle button bindings
             if device_id is not None and button_num is not None:
                 # Map device ID to stick
-                # Device 0 is usually first detected (could be left or right)
-                # We'll need to improve this mapping logic
                 if device_id == 0 and self.left_stick:
                     self.left_stick.set_button_binding(button_num, action)
                 elif device_id == 1 and self.right_stick:
                     self.right_stick.set_button_binding(button_num, action)
+
+            # Handle axis bindings
+            elif device_id is not None and axis_name is not None:
+                # Map axis names to indices
+                axis_map = {'x': 0, 'y': 1, 'z': 2, 'rotx': 3, 'roty': 4, 'rotz': 5}
+                axis_index = axis_map.get(axis_name)
+
+                if axis_index is not None:
+                    if device_id == 0 and self.left_stick:
+                        self.left_stick.set_axis_binding(axis_index, action)
+                    elif device_id == 1 and self.right_stick:
+                        self.right_stick.set_axis_binding(axis_index, action)
 
     def parse_input_string(self, input_str: str) -> Dict:
         """
         Parse joystick input string from SC bindings
 
         Args:
-            input_str: Input string like "js1_button10"
+            input_str: Input string like "js1_button10" or "js1_x"
 
         Returns:
-            Dictionary with device and button info
+            Dictionary with device, button, and/or axis info
         """
-        result = {'device': None, 'button': None}
+        result = {'device': None, 'button': None, 'axis': None}
 
         if not input_str:
             return result
@@ -458,5 +492,13 @@ class DualJoystickView(QWidget):
                     result['button'] = int(button_num)
             except ValueError:
                 pass
+
+        # Extract axis name (e.g., js1_x, js1_y, js1_rotx)
+        # Common axis names in SC: x, y, z, rotx, roty, rotz
+        axis_names = ['rotx', 'roty', 'rotz', 'x', 'y', 'z']  # Check longer names first
+        for axis in axis_names:
+            if f'_{axis}' in input_lower or input_lower.endswith(axis):
+                result['axis'] = axis
+                break
 
         return result
