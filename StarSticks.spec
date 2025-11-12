@@ -11,7 +11,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('assets', 'assets'),  # Include assets folder
+        # Assets folder will be added later when we have joystick images
     ],
     hiddenimports=[
         'PyQt6.QtCore',
