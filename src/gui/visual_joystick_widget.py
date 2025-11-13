@@ -140,12 +140,9 @@ class VisualJoystickDiagram(QWidget):
             alignment: 'left', 'center', or 'right'
         """
         # Truncate long text
-        max_length = 30
+        max_length = 25
         if len(text) > max_length:
             text = text[:max_length - 3] + "..."
-
-        # Set text color and background
-        painter.setPen(QPen(QColor(255, 255, 255)))  # White text
 
         # Calculate text width for alignment
         metrics = painter.fontMetrics()
@@ -156,21 +153,28 @@ class VisualJoystickDiagram(QWidget):
         if alignment == 'center':
             draw_x = x - text_width // 2
         elif alignment == 'right':
-            draw_x = x - text_width
+            draw_x = x - text_width - 20  # Add padding for right-aligned
         else:  # left
-            draw_x = x
+            draw_x = x + 20  # Add padding for left-aligned
 
-        # Draw semi-transparent background rectangle
-        padding = 8
+        # Draw white background box with border (like fillable PDF style)
+        padding = 12
         bg_rect = (
             draw_x - padding,
             y - text_height - padding // 2,
             text_width + padding * 2,
             text_height + padding
         )
-        painter.fillRect(*bg_rect, QColor(0, 0, 0, 180))  # Semi-transparent black
 
-        # Draw text
+        # White background
+        painter.fillRect(*bg_rect, QColor(255, 255, 255, 255))
+
+        # Black border
+        painter.setPen(QPen(QColor(0, 0, 0), 3))
+        painter.drawRect(*bg_rect)
+
+        # Draw black text on white background
+        painter.setPen(QPen(QColor(0, 0, 0)))
         painter.drawText(draw_x, y, text)
 
     def update_display(self):
@@ -187,7 +191,8 @@ class VisualJoystickDiagram(QWidget):
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
         # Set font for binding text (scaled for high-res image)
-        font = QFont("Arial", 80, QFont.Weight.Bold)
+        # Smaller font for better readability
+        font = QFont("Arial", 50, QFont.Weight.Normal)
         painter.setFont(font)
 
         # Draw left stick bindings
