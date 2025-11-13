@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt
 from src.core.joystick_detector import JoystickDetector
 from src.core.binding_parser import BindingParser
 from src.gui.joystick_widget import DualJoystickView
+from src.gui.visual_joystick_widget import DualVisualJoystickView
 from src.core.action_categories import ActionMode, get_mode_icon
 
 
@@ -126,13 +127,21 @@ class MainWindow(QMainWindow):
         joystick_group.setLayout(joystick_layout)
         main_layout.addWidget(joystick_group)
 
-        # Visualization Area
-        viz_group = QGroupBox("Joystick Visualization")
+        # Visualization Area - Button Grid
+        viz_group = QGroupBox("Button Grid View")
         viz_layout = QVBoxLayout()
         self.viz_widget = DualJoystickView()
         viz_layout.addWidget(self.viz_widget)
         viz_group.setLayout(viz_layout)
         main_layout.addWidget(viz_group)
+
+        # Visual Diagram Area
+        visual_group = QGroupBox("Visual Diagram View")
+        visual_layout = QVBoxLayout()
+        self.visual_widget = DualVisualJoystickView()
+        visual_layout.addWidget(self.visual_widget)
+        visual_group.setLayout(visual_layout)
+        main_layout.addWidget(visual_group)
 
         # Status Bar
         self.statusBar().showMessage("Ready")
@@ -177,8 +186,9 @@ class MainWindow(QMainWindow):
             self.joystick_list.setText(output)
             self.statusBar().showMessage(f"Detected {len(joysticks)} joystick(s)")
 
-            # Update visualization
+            # Update visualizations
             self.viz_widget.set_joysticks(joysticks)
+            self.visual_widget.set_joysticks(joysticks)
         else:
             self.joystick_list.setText("No joysticks detected.\n\nPlease ensure your joysticks are connected.")
             self.statusBar().showMessage("No joysticks detected")
@@ -249,8 +259,12 @@ class MainWindow(QMainWindow):
                 if categorize_action(binding.get('action', '')) == self.current_mode
             ]
 
-        # Update visualization
+        # Update button grid visualization
         self.viz_widget.update_bindings(filtered_bindings)
+
+        # Update visual diagram with the same bindings and mapping
+        if hasattr(self.viz_widget, 'sc_to_pygame_map') and self.viz_widget.sc_to_pygame_map:
+            self.visual_widget.update_bindings(filtered_bindings, self.viz_widget.sc_to_pygame_map)
 
         # Update status bar
         total = len(self.current_bindings)

@@ -375,6 +375,7 @@ class DualJoystickView(QWidget):
         self.right_stick = None
         self.stick_visualizations = {}  # Map pygame ID to visualization widget
         self.mapping_swapped = False  # Track if user has swapped the mapping
+        self.sc_to_pygame_map = {}  # Current SC js → pygame ID mapping (for visual widget)
         self.init_ui()
 
     def init_ui(self):
@@ -474,6 +475,9 @@ class DualJoystickView(QWidget):
             sc_to_pygame_map[sc_js_number] = pygame_id
             viz_name = self.stick_visualizations[pygame_id].joystick_name
             print(f"Mapping: SC js{sc_js_number} → Pygame ID {pygame_id} ({viz_name})")
+
+        # Store mapping for visual widget
+        self.sc_to_pygame_map = sc_to_pygame_map
 
         print()
 
