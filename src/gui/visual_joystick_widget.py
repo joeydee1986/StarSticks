@@ -105,11 +105,17 @@ class VisualJoystickDiagram(QWidget):
         # Create label to display the image
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setScaledContents(False)  # We'll handle scaling manually
 
         # Set initial pixmap
         self.update_display()
 
         layout.addWidget(self.image_label)
+
+    def resizeEvent(self, event):
+        """Handle resize events to scale the image"""
+        super().resizeEvent(event)
+        self.update_display()
 
     def set_bindings(self, left_bindings: Dict[int, str], right_bindings: Dict[int, str]):
         """
@@ -198,13 +204,20 @@ class VisualJoystickDiagram(QWidget):
 
         painter.end()
 
-        # Scale down to reasonable display size (original is 11000x6160)
-        # Scale to width of 1200px while maintaining aspect ratio
-        display_width = 1200
-        scaled_pixmap = pixmap.scaledToWidth(
-            display_width,
-            Qt.TransformationMode.SmoothTransformation
-        )
+        # Scale to fit the available widget size while maintaining aspect ratio
+        label_size = self.image_label.size()
+        if label_size.width() > 0 and label_size.height() > 0:
+            scaled_pixmap = pixmap.scaled(
+                label_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+        else:
+            # Fallback for initial sizing
+            scaled_pixmap = pixmap.scaledToWidth(
+                1200,
+                Qt.TransformationMode.SmoothTransformation
+            )
 
         # Update the label with scaled pixmap
         self.image_label.setPixmap(scaled_pixmap)
