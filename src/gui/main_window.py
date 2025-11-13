@@ -82,18 +82,47 @@ class MainWindow(QMainWindow):
         self.joystick_list.setReadOnly(True)
         self.joystick_list.setMaximumHeight(150)
 
-        # Button row
-        button_row = QHBoxLayout()
+        joystick_layout.addWidget(self.joystick_list)
+
+        # Detect button
         self.detect_btn = QPushButton("Detect Joysticks")
         self.detect_btn.clicked.connect(self.detect_joysticks)
-        self.swap_btn = QPushButton("Swap L/R Joysticks")
-        self.swap_btn.clicked.connect(self.swap_joysticks)
-        self.swap_btn.setToolTip("Swap the left and right joystick mapping if bindings appear on wrong stick")
-        button_row.addWidget(self.detect_btn)
-        button_row.addWidget(self.swap_btn)
+        joystick_layout.addWidget(self.detect_btn)
 
-        joystick_layout.addWidget(self.joystick_list)
-        joystick_layout.addLayout(button_row)
+        # Mapping swap section
+        swap_group = QWidget()
+        swap_layout = QVBoxLayout(swap_group)
+        swap_layout.setContentsMargins(0, 10, 0, 0)
+
+        swap_info = QLabel("⚠ Bindings on wrong stick?")
+        swap_info.setStyleSheet("font-weight: bold; color: #FF9800;")
+        swap_layout.addWidget(swap_info)
+
+        swap_help = QLabel("Click below if SC js1 bindings appear on LEFT stick instead of RIGHT\n(or vice versa)")
+        swap_help.setStyleSheet("font-size: 10px; color: #888888;")
+        swap_layout.addWidget(swap_help)
+
+        self.swap_btn = QPushButton("🔄 Swap SC js1 ↔ js2 Mapping")
+        self.swap_btn.clicked.connect(self.swap_joysticks)
+        self.swap_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                font-weight: bold;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+        """)
+        swap_layout.addWidget(self.swap_btn)
+
+        self.mapping_status = QLabel()
+        self.mapping_status.setStyleSheet("font-size: 10px; color: #4CAF50; font-style: italic;")
+        swap_layout.addWidget(self.mapping_status)
+
+        joystick_layout.addWidget(swap_group)
         joystick_group.setLayout(joystick_layout)
         main_layout.addWidget(joystick_group)
 
@@ -191,7 +220,14 @@ class MainWindow(QMainWindow):
     def swap_joysticks(self):
         """Swap the left and right joystick mapping"""
         self.viz_widget.swap_joystick_mapping()
-        self.statusBar().showMessage("Joystick mapping swapped")
+
+        # Update status label
+        if self.viz_widget.mapping_swapped:
+            self.mapping_status.setText("✓ Mapping SWAPPED: SC js1→RIGHT, js2→LEFT")
+            self.statusBar().showMessage("Joystick mapping swapped - SC js1 and js2 reversed")
+        else:
+            self.mapping_status.setText("✓ Mapping NORMAL: SC js1→LEFT, js2→RIGHT")
+            self.statusBar().showMessage("Joystick mapping reset to normal")
 
         # Reload bindings with new mapping
         if self.current_bindings:
