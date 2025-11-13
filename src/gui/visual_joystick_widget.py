@@ -25,13 +25,75 @@ def get_resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
+# Button coordinate mappings for Yogidragon Dual Alpha Template (11000x6160 pixels)
+# Format: button_number -> (x, y, alignment)
+# Alignment: 'left', 'center', 'right' for text positioning
+
+LEFT_BUTTON_COORDS = {
+    # Thumb buttons (top of stick)
+    1: (2750, 2200, 'center'),
+    2: (2950, 2200, 'center'),
+    3: (2550, 2200, 'center'),
+    4: (2750, 2000, 'center'),
+
+    # Side buttons
+    5: (1800, 2800, 'right'),
+    6: (1800, 3000, 'right'),
+    7: (1800, 3200, 'right'),
+    8: (1800, 3400, 'right'),
+
+    # Trigger stages
+    9: (2750, 4500, 'center'),
+    10: (2750, 4700, 'center'),
+
+    # Hat switches (approximate positions)
+    11: (2400, 2600, 'center'),  # Hat 1
+    12: (3100, 2600, 'center'),  # Hat 2
+
+    # Additional buttons
+    13: (1600, 2400, 'right'),
+    14: (1600, 2600, 'right'),
+    15: (3900, 2400, 'left'),
+    16: (3900, 2600, 'left'),
+}
+
+RIGHT_BUTTON_COORDS = {
+    # Thumb buttons (top of stick) - mirrored from left
+    1: (8250, 2200, 'center'),
+    2: (8050, 2200, 'center'),
+    3: (8450, 2200, 'center'),
+    4: (8250, 2000, 'center'),
+
+    # Side buttons - mirrored
+    5: (9200, 2800, 'left'),
+    6: (9200, 3000, 'left'),
+    7: (9200, 3200, 'left'),
+    8: (9200, 3400, 'left'),
+
+    # Trigger stages
+    9: (8250, 4500, 'center'),
+    10: (8250, 4700, 'center'),
+
+    # Hat switches - mirrored
+    11: (8600, 2600, 'center'),  # Hat 1
+    12: (7900, 2600, 'center'),  # Hat 2
+
+    # Additional buttons - mirrored
+    13: (9400, 2400, 'left'),
+    14: (9400, 2600, 'left'),
+    15: (7100, 2400, 'right'),
+    16: (7100, 2600, 'right'),
+}
+
+
 class VisualJoystickDiagram(QWidget):
     """Widget that displays a joystick diagram image with binding overlays"""
 
     def __init__(self, image_path: str, parent=None):
         super().__init__(parent)
         self.image_path = image_path
-        self.bindings = {}  # button_num -> action text
+        self.left_bindings = {}  # button_num -> action text
+        self.right_bindings = {}  # button_num -> action text
         self.original_pixmap = QPixmap(image_path)
         self.init_ui()
 
@@ -49,15 +111,61 @@ class VisualJoystickDiagram(QWidget):
 
         layout.addWidget(self.image_label)
 
-    def set_bindings(self, bindings: Dict[int, str]):
+    def set_bindings(self, left_bindings: Dict[int, str], right_bindings: Dict[int, str]):
         """
         Set the button bindings to display
 
         Args:
-            bindings: Dict mapping button number -> action name
+            left_bindings: Dict mapping button number -> action name for left stick
+            right_bindings: Dict mapping button number -> action name for right stick
         """
-        self.bindings = bindings
+        self.left_bindings = left_bindings
+        self.right_bindings = right_bindings
         self.update_display()
+
+    def draw_binding_text(self, painter: QPainter, x: int, y: int, text: str, alignment: str):
+        """
+        Draw binding text at specified position with alignment
+
+        Args:
+            painter: QPainter instance
+            x, y: Position coordinates
+            text: Binding action text
+            alignment: 'left', 'center', or 'right'
+        """
+        # Truncate long text
+        max_length = 30
+        if len(text) > max_length:
+            text = text[:max_length - 3] + "..."
+
+        # Set text color and background
+        painter.setPen(QPen(QColor(255, 255, 255)))  # White text
+
+        # Calculate text width for alignment
+        metrics = painter.fontMetrics()
+        text_width = metrics.horizontalAdvance(text)
+        text_height = metrics.height()
+
+        # Adjust x position based on alignment
+        if alignment == 'center':
+            draw_x = x - text_width // 2
+        elif alignment == 'right':
+            draw_x = x - text_width
+        else:  # left
+            draw_x = x
+
+        # Draw semi-transparent background rectangle
+        padding = 8
+        bg_rect = (
+            draw_x - padding,
+            y - text_height - padding // 2,
+            text_width + padding * 2,
+            text_height + padding
+        )
+        painter.fillRect(*bg_rect, QColor(0, 0, 0, 180))  # Semi-transparent black
+
+        # Draw text
+        painter.drawText(draw_x, y, text)
 
     def update_display(self):
         """Redraw the image with binding overlays"""
@@ -70,13 +178,23 @@ class VisualJoystickDiagram(QWidget):
         # Create painter to draw overlays
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
-        # Set font for binding text
-        font = QFont("Arial", 10, QFont.Weight.Bold)
+        # Set font for binding text (scaled for high-res image)
+        font = QFont("Arial", 80, QFont.Weight.Bold)
         painter.setFont(font)
 
-        # TODO: Draw binding text at button positions
-        # For now, this is a placeholder - we'll add coordinate mapping next
+        # Draw left stick bindings
+        for button_num, action in self.left_bindings.items():
+            if button_num in LEFT_BUTTON_COORDS:
+                x, y, alignment = LEFT_BUTTON_COORDS[button_num]
+                self.draw_binding_text(painter, x, y, action, alignment)
+
+        # Draw right stick bindings
+        for button_num, action in self.right_bindings.items():
+            if button_num in RIGHT_BUTTON_COORDS:
+                x, y, alignment = RIGHT_BUTTON_COORDS[button_num]
+                self.draw_binding_text(painter, x, y, action, alignment)
 
         painter.end()
 
@@ -178,12 +296,7 @@ class DualVisualJoystickView(QWidget):
                 elif side == 'right':
                     self.right_bindings[button_num] = action
 
-        # Combine bindings for display (TODO: separate left/right on diagram)
-        all_bindings = {}
-        all_bindings.update(self.left_bindings)
-        all_bindings.update(self.right_bindings)
-
-        # Update diagram
-        self.diagram.set_bindings(all_bindings)
+        # Update diagram with separate left/right bindings
+        self.diagram.set_bindings(self.left_bindings, self.right_bindings)
 
         print(f"📊 Visual diagram updated: {len(self.left_bindings)} left bindings, {len(self.right_bindings)} right bindings")
